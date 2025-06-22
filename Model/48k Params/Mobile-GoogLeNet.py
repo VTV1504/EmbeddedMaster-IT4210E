@@ -121,11 +121,11 @@ if __name__ == "__main__":
     model = build_model_inception_ds()
     qat_model = quantize_model(model)
     
-#   qat_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-#   qat_model.summary()
+    qat_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    qat_model.summary()
 #   qat_model.fit(x_train, y_train, batch_size=128, epochs=30, validation_split=0.2)
 #   test_loss, test_acc = qat_model.evaluate(x_test, y_test)
 #   print("Test Accuracy after QAT:", test_acc)
 #   qat_model.save(r"C:\Users\vinhv\OneDrive\Máy tính\digit_recognition.h5")
-    qat_model.save(r"C:\Users\vinhv\OneDrive\Documents\digit_recognition", save_format='tf')
+#   qat_model.save(r"C:\Users\vinhv\OneDrive\Documents\digit_recognition", save_format='tf')
 
