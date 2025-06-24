@@ -177,31 +177,29 @@ uint8_t status = 0;
 int acquire_and_process_data(ai_i8* data[])
 {
 	uint8_t temp[784];
-	    extract_canvas(temp);
+	extract_canvas(temp);
 
-	    // Invert and copy into input buffer
-	    for (int i = 0; i < 784; i++) {
-	        data[0][i] = 255 - temp[i];  // black-on-white (if needed)
-	    }
+	// Invert and copy into input buffer
+	for (int i = 0; i < 784; i++) {
+		data[0][i] = temp[i];  // black-on-white (if needed)
+	}
   return 0;
 }
 
 int post_process(ai_i8* data[])
 {
 	float* output = (float*)data[0];
-
-	    int max_index = 0;
-	    float max_val = output[0];
-	    for (int i = 1; i < 36; i++) {
-	        if (output[i] > max_val) {
-	            max_val = output[i];
-	            max_index = i;
-	        }
-	    }
-
-	    // Save globally
-	    ai_predicted_confidence = max_val;
-	    ai_predicted_char = (max_index < 10) ? ('0' + max_index) : ('A' + max_index - 10);
+	int max_index = 0;
+	float max_val = output[0];
+	for (int i = 1; i < 36; i++) {
+		if (output[i] > max_val) {
+			max_val = output[i];
+			max_index = i;
+		}
+	}
+	// Save globally
+	ai_predicted_confidence = max_val;
+	ai_predicted_char = (max_index < 10) ? ('0' + max_index) : ('A' + max_index - 10);
   return 0;
 }
 /* USER CODE END 2 */

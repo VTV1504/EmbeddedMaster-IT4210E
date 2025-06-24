@@ -3,5 +3,5 @@
 ../X-CUBE-AI/App/app_x-cube-ai.c:157:12:ai_run	16	static
 ../X-CUBE-AI/App/app_x-cube-ai.c:177:5:acquire_and_process_data	808	static
 ../X-CUBE-AI/App/app_x-cube-ai.c:189:5:post_process	32	static
-../X-CUBE-AI/App/app_x-cube-ai.c:211:6:MX_X_CUBE_AI_Init	8	static
-../X-CUBE-AI/App/app_x-cube-ai.c:220:6:MX_X_CUBE_AI_Process	8	static
+../X-CUBE-AI/App/app_x-cube-ai.c:209:6:MX_X_CUBE_AI_Init	8	static
+../X-CUBE-AI/App/app_x-cube-ai.c:218:6:MX_X_CUBE_AI_Process	8	static

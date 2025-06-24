@@ -27,6 +27,7 @@
 #include "stm32f429i_discovery_ts.h"
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,6 +84,7 @@ uint32_t touchReleaseTime = 0;
 extern char ai_predicted_char;
 extern float ai_predicted_confidence;
 extern uint8_t status;
+uint8_t canvas[28][28] = {0};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -171,7 +173,6 @@ int main(void)
 		  uint16_t y = 320-ts.Y;
 		  if (in_clear_button(x, y))
 		  {
-			  // Request canvas clear
 			  clear_canvas();
 		  }
 		  else if (in_run_button(x, y))
@@ -194,20 +195,16 @@ int main(void)
 				  lastY = y;
 			  }
 		  }
-		  // Reset the release timer since touch is active
 		  touchReleaseTime = HAL_GetTick();
 	  }
 	  else
 	  {
-		  // If no touch for > 200ms, reset firstTouch flag
 		  if (HAL_GetTick() - touchReleaseTime > 200) {
 			  firstTouch = true;
 		  }
 	  }
 
     /* USER CODE END WHILE */
-
-  MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
 	  HAL_Delay(50);
   }
@@ -724,29 +721,20 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void DrawBackgroundUI(void)
 {
-	// Init background layer (canvas + UI)
 	BSP_LCD_LayerDefaultInit(0, LCD_FRAME_BUFFER);
 	BSP_LCD_SelectLayer(0);
 	BSP_LCD_DisplayOn();
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
-    // ----------------------------
-    // Draw Canvas Bounding Box
-    // ----------------------------
+
     BSP_LCD_SetTextColor(LCD_COLOR_ORANGE);
     BSP_LCD_DrawRect(CANVAS_X-1, CANVAS_Y-1, CANVAS_SIZE+2, CANVAS_SIZE+2);
 
-    // ----------------------------
-    // Draw Clear Button
-    // ----------------------------
     BSP_LCD_SetTextColor(LCD_COLOR_LIGHTGRAY);
     BSP_LCD_FillRect(8, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_SetBackColor(LCD_COLOR_LIGHTGRAY);
     BSP_LCD_DisplayStringAt(16, BUTTON_Y + 4, (uint8_t *)"Clear", LEFT_MODE);
 
-    // ----------------------------
-    // Draw Predict Button
-    // ----------------------------
     BSP_LCD_SetTextColor(LCD_COLOR_LIGHTGRAY);
     BSP_LCD_FillRect(LCD_WIDTH - BUTTON_WIDTH-8, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT);
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
@@ -769,6 +757,7 @@ void DrawThickLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
         uint16_t x = x0 + i * stepX;
         uint16_t y = y0 + i * stepY;
         BSP_LCD_FillCircle(x, y, thickness / 2);
+        canvas[y/SCALE][x/SCALE] = 255;
     }
 }
 
@@ -795,58 +784,33 @@ bool in_run_button(uint16_t x, uint16_t y)
 
 bool in_canvas_area(uint16_t x, uint16_t y)
 {
-	uint16_t thickness = THICKNESS;
-	thickness /= 2;
     return (
-        x >= (CANVAS_X + thickness) &&
-        x < (CANVAS_X + CANVAS_SIZE - thickness) &&
-        y >= (CANVAS_Y + thickness) &&
-        y < (CANVAS_Y + CANVAS_SIZE - thickness)
+        x >= (CANVAS_X + THICKNESS/2) &&
+        x < (CANVAS_X + CANVAS_SIZE - THICKNESS/2) &&
+        y >= (CANVAS_Y + THICKNESS/2) &&
+        y < (CANVAS_Y + CANVAS_SIZE - THICKNESS/2)
     );
 }
 
 void clear_canvas(void)
 {
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-
-    // Fill the canvas area (inside the orange box) without erasing the border
     BSP_LCD_FillRect(CANVAS_X, CANVAS_Y, CANVAS_SIZE, CANVAS_SIZE);
     firstTouch = true;
+    memset(canvas, 0, sizeof(canvas));
 }
 
 void extract_canvas(uint8_t *out)
 {
-    const int scale = SCALE;
-    const uint16_t *framebuffer = (uint16_t *)LCD_FRAME_BUFFER;
-
     for (int oy = 0; oy < 28; oy++) {
-    	for (int ox = 0; ox < 28; ox++) {
-
-            int sum = 0;
-            for (int dy = 0; dy < scale; dy++) {
-                for (int dx = 0; dx < scale; dx++) {
-                    int px = CANVAS_X + ox * scale + dx;
-                    int py = CANVAS_Y + oy * scale + dy;
-                    uint16_t pixel = framebuffer[py * LCD_WIDTH + px];
-
-                    // Convert RGB565 to grayscale
-                    uint8_t r = ((pixel >> 11) & 0x1F) << 3;
-                    uint8_t g = ((pixel >> 5) & 0x3F) << 2;
-                    uint8_t b = (pixel & 0x1F) << 3;
-                    uint8_t gray = (uint8_t)(r * 0.299f + g * 0.587f + b * 0.114f);
-
-                    sum += gray;
-                }
-            }
-
-            out[oy * 28 + ox] = (uint8_t)(sum / (scale * scale));
-        }
-    }
+		for (int ox = 0; ox < 28; ox++) {
+			out[oy*28+ox] = canvas[oy][ox];
+		}
+	}
 }
 
 void DisplayResult(void)
 {
-    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
     BSP_LCD_SetFont(&Font16);
 
@@ -858,7 +822,10 @@ void DisplayResult(void)
         snprintf(result, sizeof(result), "Predicted: %c (%.1f%%)", ai_predicted_char, ai_predicted_confidence * 100.0f);
     }
 
-    // Display result
+    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+	BSP_LCD_FillRect(0, RESULT_Y, 240, 20);
+
+	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_DisplayStringAt(8, RESULT_Y, (uint8_t*)result, LEFT_MODE);
 }
 /* USER CODE END 4 */
